@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: credit-risk-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: credit-risk-api
+  template:
+    metadata:
+      labels:
+        app: credit-risk-api
+    spec:
+      containers:
+        - name: credit-risk-api
+          image: deepakkushwahaa/credit-risk-api:latest
+          ports:
+            - containerPort: 8000
