@@ -1,291 +1,345 @@
-# Credit Risk Assessment with Explainable Machine Learning
+# Explainable Credit Risk Assessment with SHAP
 
-An end-to-end credit risk modelling project that predicts loan default risk, compares interpretable and gradient boosting models, calibrates predicted probabilities, and explains individual credit decisions using SHAP.
+End-to-end credit risk modelling project covering data validation, imbalanced classification, model tuning, probability calibration, SHAP explainability, REST API development, Docker containerization, and Kubernetes deployment.
 
-**Tech Stack:** Python, Pandas, NumPy, Scikit-learn, XGBoost, SHAP, Matplotlib, Seaborn, Joblib
+The project compares Logistic Regression with XGBoost for loan default prediction, explains individual credit decisions using SHAP, and serves the trained model through a FastAPI application deployed with Docker and Kubernetes.
 
-## Problem Statement
+## Project Highlights
 
-Lenders need to identify applicants who are likely to default while avoiding unnecessary rejection of reliable customers.
+- Built an end-to-end credit risk classification pipeline using Scikit-learn and XGBoost
+- Compared an interpretable Logistic Regression baseline with a tuned XGBoost model
+- Achieved approximately **92% test accuracy and 0.81 F1 score** with XGBoost
+- Achieved approximately **0.939 ROC-AUC** in 5-fold stratified cross-validation
+- Handled class imbalance using class weighting and `scale_pos_weight`
+- Tuned XGBoost using `RandomizedSearchCV` with 150 parameter combinations
+- Calibrated predicted probabilities using `CalibratedClassifierCV`
+- Used SHAP for global and applicant-level explainability
+- Analysed false positives and false negatives from a lending perspective
+- Served the trained model through a FastAPI REST API
+- Containerized the application with Docker
+- Published the Docker image to Docker Hub
+- Deployed the API locally on Kubernetes with two replicas and a Kubernetes Service
 
-This creates two important risks:
+## Tech Stack
 
-- Approving a high-risk applicant can lead to financial loss
-- Rejecting a reliable applicant can result in lost business opportunities
+**Machine Learning:** Python, Pandas, NumPy, Scikit-learn, XGBoost  
+**Explainability:** SHAP  
+**API:** FastAPI, Pydantic, Uvicorn  
+**Deployment:** Docker, Docker Hub, Kubernetes  
+**Visualization:** Matplotlib, Seaborn  
+**Model Persistence:** Joblib  
 
-The goal of this project is to develop a credit risk assessment pipeline that can:
+---
 
-- Predict whether a borrower is likely to default
-- Estimate the probability of default
-- Identify high-risk applicants
-- Handle imbalanced credit data
-- Compare an interpretable baseline with a stronger nonlinear model
-- Produce more reliable probability estimates through calibration
-- Explain the factors behind individual predictions
-- Analyse false positives and false negatives from a business perspective
+## Business Problem
 
-The project uses Logistic Regression as an interpretable baseline and XGBoost as the main predictive model.
+Credit risk models help lenders estimate whether a borrower is likely to default.
 
-## Business Objective
+The problem involves balancing two types of risk:
 
-A useful credit risk model should not only classify applicants correctly.
+- approving a high-risk borrower can lead to financial loss
+- rejecting a reliable borrower can lead to lost business
+
+For this reason, a useful credit risk model should do more than produce a binary prediction.
 
 It should also help answer:
 
 - How likely is this applicant to default?
-- Which characteristics are contributing to the predicted risk?
-- How confident should we be in the predicted probability?
-- What types of applicants are being incorrectly classified?
-- What is the potential impact of false approvals and false rejections?
+- Which factors are influencing the prediction?
+- How reliable is the predicted probability?
+- How many risky applicants are being missed?
+- How many reliable applicants are being incorrectly classified as risky?
 
-This project approaches credit risk as both a predictive modelling and model interpretability problem.
+This project treats credit risk as both a prediction problem and an explainability problem.
+
+---
 
 ## Key Results
 
-The tuned XGBoost model achieved the strongest performance on the held-out test set.
+### Held-Out Test Performance
 
 | Model | Accuracy | Precision | Recall | F1 Score |
 |---|---:|---:|---:|---:|
 | Logistic Regression | 0.82 | 0.56 | 0.79 | 0.65 |
 | XGBoost | **0.92** | **0.81** | **0.81** | **0.81** |
 
-Five-fold stratified cross-validation also showed a clear improvement over the Logistic Regression baseline.
+### 5-Fold Stratified Cross-Validation
 
 | Model | ROC-AUC | Accuracy | Precision | Recall | F1 |
 |---|---:|---:|---:|---:|---:|
 | Logistic Regression | 0.871 | 0.812 | 0.545 | 0.778 | 0.641 |
 | XGBoost | **0.939** | **0.909** | **0.791** | **0.786** | **0.788** |
 
-The tuned XGBoost model achieved an average precision score of approximately **0.90** during hyperparameter search.
+The tuned XGBoost model also achieved an average precision score of approximately **0.90** during hyperparameter search.
+
+The results show that XGBoost provides a stronger balance between identifying default cases and limiting false alarms.
+
+---
 
 ## Dataset
 
-The dataset contains **32,581 loan applications** with information describing the applicant, loan characteristics, and credit history.
+The dataset contains **32,581 loan applications**.
 
 The target variable is:
 
-`loan_status`
+```text
+loan_status
+```
 
 where:
 
-- `0` represents non-default
-- `1` represents default
+```text
+0 = non-default
+1 = default
+```
 
-The original class distribution contains:
+### Class Distribution
 
-- 25,473 non-default observations
-- 7,108 default observations
+```text
+Non-default: 25,473
+Default:      7,108
+```
 
-This creates a class imbalance that must be considered during model training and evaluation.
+The dataset is therefore imbalanced, with default cases representing the minority class.
 
 ### Features
 
-The model uses information such as:
+The model uses information including:
 
-- Applicant age
-- Annual income
-- Employment length
-- Home ownership
-- Loan purpose
-- Loan grade
-- Loan amount
-- Interest rate
-- Loan-to-income ratio
-- Previous default history
-- Credit history length
+- applicant age
+- annual income
+- employment length
+- home ownership
+- loan purpose
+- loan grade
+- loan amount
+- interest rate
+- loan-to-income ratio
+- previous default history
+- credit history length
 
-These variables provide information about both the applicant's financial situation and the characteristics of the requested loan.
+These features capture both borrower characteristics and loan characteristics.
 
-## Project Workflow
+---
+
+## End-to-End Workflow
 
 ```text
 Credit Risk Data
-      |
-      v
+        |
+        v
 Data Validation
-      |
-      v
+        |
+        v
 Exploratory Data Analysis
-      |
-      v
+        |
+        v
 Data Cleaning
-      |
-      v
+        |
+        v
 Stratified Train-Test Split
-      |
-      v
+        |
+        v
 Preprocessing Pipeline
-      |
-      v
+        |
+        v
 Class Imbalance Handling
-      |
-      v
+        |
+        v
 Logistic Regression Baseline
-      |
-      v
-XGBoost Model
-      |
-      v
-Stratified Cross-Validation
-      |
-      v
+        |
+        v
+XGBoost
+        |
+        v
+Cross-Validation
+        |
+        v
 Hyperparameter Tuning
-      |
-      v
+        |
+        v
 Probability Calibration
-      |
-      v
+        |
+        v
 SHAP Explainability
-      |
-      v
+        |
+        v
 Error Analysis
-      |
-      v
+        |
+        v
 Model Persistence
+        |
+        v
+FastAPI REST API
+        |
+        v
+Docker
+        |
+        v
+Docker Hub
+        |
+        v
+Kubernetes Deployment
 ```
+
+---
 
 ## Data Validation and Cleaning
 
-Before training the models, the dataset is checked for data quality problems that could affect model performance.
+Before model training, the dataset is checked for data quality issues that could affect the results.
 
 The validation process includes:
 
-- Missing value inspection
-- Duplicate detection
-- Unrealistic applicant ages
-- Employment length checks
-- Employment history relative to applicant age
-- Extreme numerical observations
-- Loan amount validation
-- Interest rate inspection
-- Class distribution analysis
+- missing value inspection
+- duplicate detection
+- unrealistic applicant ages
+- employment length validation
+- employment history relative to age
+- extreme numerical observations
+- loan amount validation
+- interest rate inspection
+- target class distribution analysis
 
-Cleaning these observations helps prevent unrealistic records from influencing the models.
+The purpose of this stage is to prevent unrealistic or inconsistent observations from influencing model training.
+
+---
 
 ## Exploratory Data Analysis
 
-Exploratory analysis is used to understand how applicant and loan characteristics differ between default and non-default cases.
+Exploratory analysis is used to understand how borrower and loan characteristics differ between default and non-default cases.
 
 The analysis focuses on variables such as:
 
-- Income
-- Loan amount
-- Interest rate
-- Loan-to-income ratio
-- Loan grade
-- Loan purpose
-- Home ownership
-- Previous default history
+- income
+- loan amount
+- interest rate
+- loan-to-income ratio
+- loan grade
+- loan purpose
+- home ownership
+- previous default history
 
-The objective is not only to visualize the data but also to understand which characteristics may contain useful information for credit risk prediction.
+The goal is to identify patterns that may contain useful information for credit risk prediction.
+
+---
 
 ## Train-Test Strategy
 
-The cleaned dataset is separated into training and test data using a stratified split.
+The cleaned dataset is divided into training and test sets using a stratified split.
 
-Stratification keeps the proportion of default and non-default observations similar across both datasets.
+Stratification preserves the proportion of default and non-default observations across both datasets.
 
 This is particularly important because the target variable is imbalanced.
 
-The test set remains separate from model training and hyperparameter selection so that it can provide an independent evaluation of final model performance.
+The test set is kept separate from model training and hyperparameter selection so that it can provide an independent evaluation of final model performance.
+
+---
 
 ## Preprocessing
 
-The preprocessing steps are implemented using Scikit-learn `Pipeline` and `ColumnTransformer`.
+Preprocessing is implemented using Scikit-learn `Pipeline` and `ColumnTransformer`.
 
-This keeps transformation logic connected to the model and ensures that the same preprocessing steps are applied consistently during both training and prediction.
+Keeping preprocessing inside the pipeline ensures that the same transformations are applied during both model training and inference.
 
 ### Numerical Features
 
-Numerical variables are handled using:
+Numerical variables are processed using:
 
-- Median imputation for missing values
-- Standard scaling where required by the model
+- median imputation
+- standard scaling where required
 
 ### Categorical Features
 
-Categorical variables are handled using:
+Categorical variables are processed using:
 
-- Missing value imputation
-- One-hot encoding
+- missing value imputation
+- one-hot encoding
 
-Different preprocessing strategies are used for Logistic Regression and XGBoost because the models have different requirements.
+Different preprocessing configurations are used for Logistic Regression and XGBoost because the models have different requirements.
+
+---
 
 ## Logistic Regression Baseline
 
-Logistic Regression is used as the baseline model.
+Logistic Regression is used as an interpretable baseline.
 
-It provides an interpretable reference that makes it possible to determine whether a more complex machine learning model produces a meaningful performance improvement.
+The baseline pipeline includes:
 
-For Logistic Regression:
+- median imputation
+- numerical standardization
+- one-hot encoding
+- balanced class weights
 
-- Numerical variables are median-imputed
-- Numerical features are standardized
-- Categorical variables are one-hot encoded
-- Balanced class weights are used
+### Test Performance
 
-### Baseline Performance
-
-The Logistic Regression model achieved approximately:
-
-- Accuracy: **82%**
-- Precision: **56%**
-- Recall: **79%**
-- F1 Score: **65%**
+```text
+Accuracy:  82%
+Precision: 56%
+Recall:    79%
+F1 Score:  65%
+```
 
 The relatively high recall means the model identifies many default cases.
 
-However, its lower precision indicates that a larger number of reliable applicants are also classified as risky.
+However, the lower precision means more reliable borrowers are also classified as risky.
 
-This establishes a useful baseline for evaluating the XGBoost model.
+This provides a useful benchmark for evaluating whether a more complex model delivers meaningful improvement.
+
+---
 
 ## Handling Class Imbalance
 
 Loan defaults represent a smaller proportion of the dataset.
 
-A model trained without considering this imbalance could achieve reasonable accuracy simply by favouring the majority non-default class.
+A model trained without considering this imbalance could obtain reasonable accuracy while favouring the majority non-default class.
 
 Different strategies are therefore used for the two models.
 
 ### Logistic Regression
 
-Balanced class weights are used so that errors on the minority default class receive more importance during training.
+Balanced class weights give more importance to errors on the minority default class.
 
 ### XGBoost
 
-The `scale_pos_weight` parameter is calculated using the ratio between non-default and default observations in the training data.
+XGBoost uses `scale_pos_weight`.
 
-The resulting value is approximately:
+The approximate value used is:
 
 ```text
 3.63
 ```
 
-This increases the importance of default observations during model training.
+This increases the importance of default observations during training.
+
+---
 
 ## XGBoost
 
 XGBoost is used as the main nonlinear model.
 
-Unlike Logistic Regression, tree-based boosting can capture:
+Compared with Logistic Regression, gradient boosted trees can capture:
 
-- Nonlinear relationships
-- Interactions between variables
-- Complex decision boundaries
+- nonlinear relationships
+- interactions between features
+- more complex decision boundaries
 
-These characteristics are useful in credit risk because borrower behaviour is unlikely to depend on completely linear relationships.
+These properties are useful in credit risk because borrower behaviour is unlikely to depend on completely linear relationships.
+
+---
 
 ## Hyperparameter Tuning
 
 The XGBoost model is optimized using `RandomizedSearchCV`.
 
-The search evaluates **150 hyperparameter combinations** using **5-fold stratified cross-validation**.
+The search evaluates **150 parameter combinations** using **5-fold stratified cross-validation**.
 
 The optimization metric is:
 
-**Average Precision**
+```text
+Average Precision
+```
 
-Average Precision is particularly useful for this problem because the target classes are imbalanced and the model needs to identify the smaller default class effectively.
+Average Precision is useful for this problem because the default class is the minority class.
 
 The search explores parameters including:
 
@@ -297,21 +351,23 @@ The search explores parameters including:
 - `min_child_weight`
 - `gamma`
 
-This allows the model to balance predictive performance and model complexity.
+The objective is to improve predictive performance while controlling model complexity.
+
+---
 
 ## Cross-Validation
 
-A single train-test split can produce results that depend on one particular division of the data.
+A single train-test split can depend heavily on one particular division of the data.
 
-To obtain a more reliable estimate of model performance, both models are evaluated using **5-fold Stratified Cross-Validation**.
+To obtain a more reliable estimate of generalization performance, both models are evaluated using 5-fold Stratified Cross-Validation.
 
-The following metrics are measured:
+The evaluation includes:
 
 - ROC-AUC
-- Accuracy
-- Precision
-- Recall
-- F1 Score
+- accuracy
+- precision
+- recall
+- F1 score
 
 ### Cross-Validation Results
 
@@ -323,167 +379,152 @@ The following metrics are measured:
 | Recall | 0.778 | **0.786** |
 | F1 Score | 0.641 | **0.788** |
 
-XGBoost provides the strongest overall balance between default detection and prediction precision.
+XGBoost provides the strongest overall balance across the evaluation metrics.
 
-## Final XGBoost Performance
-
-On the held-out test set, the tuned XGBoost model achieved:
-
-- **92% Accuracy**
-- **81% Precision**
-- **81% Recall**
-- **81% F1 Score**
-
-The results show a substantial improvement over the Logistic Regression baseline, particularly in precision and F1 score.
-
-This means the model is able to identify default cases while generating fewer false alarms.
+---
 
 ## Why Accuracy Alone Is Not Enough
 
-Accuracy can be misleading in credit risk because most borrowers belong to the non-default class.
+Accuracy is not sufficient for evaluating this problem because most borrowers belong to the non-default class.
 
-For this reason, model evaluation also includes:
+Several additional metrics are therefore considered.
 
 ### Precision
 
-Among applicants predicted to default, how many actually defaulted?
+Among borrowers predicted to default, how many actually default?
 
-Higher precision reduces the number of reliable applicants incorrectly classified as risky.
+Higher precision reduces the number of reliable borrowers incorrectly classified as risky.
 
 ### Recall
 
-Among applicants who actually defaulted, how many did the model identify?
+Among borrowers who actually default, how many are identified by the model?
 
-Higher recall reduces the number of risky applicants that the model fails to detect.
+Higher recall reduces the number of risky borrowers that the model fails to detect.
 
 ### F1 Score
 
-Combines precision and recall into a single metric.
+F1 combines precision and recall into a single metric.
 
 ### ROC-AUC
 
-Measures the model's ability to rank risky applicants above lower-risk applicants across different classification thresholds.
+ROC-AUC measures how well the model ranks risky borrowers above lower-risk borrowers across different classification thresholds.
 
 ### Average Precision
 
-Evaluates performance across the precision-recall curve and is useful when working with imbalanced classes.
+Average Precision evaluates performance across the precision-recall curve and is particularly useful for imbalanced classification.
+
+---
 
 ## Probability Calibration
 
-Credit risk decisions often depend on probabilities rather than only binary predictions.
+Credit risk decisions often depend on predicted probabilities rather than only binary classifications.
 
 For example:
 
 ```text
-Applicant A: 12% predicted probability of default
-Applicant B: 67% predicted probability of default
+Applicant A: 12% probability of default
+Applicant B: 67% probability of default
 ```
 
-These probabilities can support risk ranking and further decision processes.
+These probabilities can be used for risk ranking and decision support.
 
-However, a model's raw probability estimates are not automatically well calibrated.
+However, a model can classify borrowers correctly while still producing poorly calibrated probabilities.
 
-A predicted probability of 30% should ideally correspond to a group of applicants where approximately 30% actually default.
+A predicted probability of 30% should ideally correspond to a group where approximately 30% of borrowers actually default.
 
 The XGBoost probabilities are therefore calibrated using:
 
-`CalibratedClassifierCV`
+```text
+CalibratedClassifierCV
+```
 
 with sigmoid calibration and five-fold cross-validation.
 
 Calibration curves are used to compare the original and calibrated probabilities.
 
-This step focuses on making the model's risk estimates more meaningful rather than relying only on hard classifications.
+---
 
 ## Explainable AI with SHAP
 
-High predictive performance is not enough for a credit risk model.
+Strong predictive performance is not sufficient for a credit risk model.
 
 It is also important to understand why the model considers an applicant risky.
 
-SHAP is used to interpret the XGBoost model at both the overall model level and individual applicant level.
+SHAP is used to explain the XGBoost model at both global and individual levels.
 
-## Global SHAP Explainability
+### Global Explainability
 
-SHAP summary plots are used to understand which variables have the greatest overall influence on model predictions.
+SHAP summary plots help answer:
 
-This helps answer:
+- Which features have the greatest overall influence?
+- Which values increase predicted risk?
+- Which values reduce predicted risk?
+- How does the model use borrower and loan information?
 
-- Which variables influence default predictions most strongly?
-- Which feature values are associated with increasing predicted risk?
-- Which characteristics tend to reduce predicted risk?
-- How does the model use applicant and loan information?
+This provides a global view of the model's decision process.
 
-Instead of treating XGBoost as a black box, SHAP provides a way to inspect how the model reaches its predictions.
+### Applicant-Level Explainability
 
-## Applicant-Level Explainability
+SHAP waterfall plots are used to explain individual predictions.
 
-Global explanations describe the model as a whole.
-
-Credit decisions also require understanding individual predictions.
-
-SHAP waterfall plots are therefore used to explain individual applicants.
-
-For each prediction, SHAP shows:
+For each applicant:
 
 ```text
-Model baseline risk
-        +
+Model baseline
+      +
 Applicant-specific feature contributions
-        =
+      =
 Final model prediction
 ```
 
-Some characteristics push the predicted risk higher while others reduce it.
+Some characteristics push predicted risk higher while others reduce it.
 
-This provides a clear explanation of why the model assigns a particular risk level to an applicant.
+This makes individual model decisions easier to interpret.
+
+---
 
 ## Error Analysis
 
-Model evaluation continues beyond overall performance metrics.
-
 The tuned XGBoost model produced:
 
-- **258 false positives**
-- **256 false negatives**
+```text
+False Positives: 258
+False Negatives: 256
+```
 
-These errors have different business meanings.
+These errors have different business consequences.
 
 ### False Positive
 
-The model predicts that an applicant will default, but the applicant actually does not default.
+The model predicts default, but the borrower does not actually default.
 
-Potential consequence:
+Possible consequences include:
 
-A reliable applicant may be incorrectly considered high risk.
-
-This could result in:
-
-- Lost customers
-- Reduced lending opportunities
-- Lower potential revenue
+- rejecting a reliable borrower
+- losing a potential customer
+- reducing lending opportunities
+- losing potential revenue
 
 ### False Negative
 
-The model predicts that an applicant will not default, but the applicant actually defaults.
+The model predicts non-default, but the borrower later defaults.
 
-Potential consequence:
+Possible consequences include:
 
-The lender may approve a risky loan.
+- credit losses
+- higher portfolio risk
+- collection costs
+- additional risk management activity
 
-This can result in:
+Analysing these errors helps connect technical model performance with lending decisions.
 
-- Credit losses
-- Increased portfolio risk
-- Additional collection costs
-
-Analysing these two types of errors helps connect model evaluation with the real business consequences of credit decisions.
+---
 
 ## Model Comparison
 
 | Area | Logistic Regression | XGBoost |
 |---|---|---|
-| Interpretability | High | Lower without explanation tools |
+| Interpretability | High | Lower without explainability tools |
 | Nonlinear Relationships | Limited | Strong |
 | Feature Interactions | Limited | Strong |
 | Class Imbalance Handling | Class weights | `scale_pos_weight` |
@@ -494,169 +535,602 @@ Analysing these two types of errors helps connect model evaluation with the real
 | CV ROC-AUC | 0.871 | **0.939** |
 | Explainability | Coefficients | SHAP |
 
-Logistic Regression provides a useful interpretable benchmark, while XGBoost provides stronger overall predictive performance.
+Logistic Regression provides a useful interpretable benchmark.
 
-SHAP is then used to improve transparency around the more complex model.
+XGBoost provides stronger predictive performance, while SHAP is used to improve transparency around the more complex model.
+
+---
+
+# Model Deployment
 
 ## Model Persistence
 
-After training and calibration, the final model is saved using Joblib.
+After training and calibration, the final model is persisted using Joblib.
 
 ```python
 joblib.dump(calibrated_model, "credit_risk_model.pkl")
 ```
 
-Saving the complete model allows it to be loaded later without retraining.
+The selected decision threshold is also stored separately.
 
-This provides a starting point for integration into applications such as:
+```python
+joblib.dump(best_threshold, "best_threshold.pkl")
+```
 
-- Credit risk dashboards
-- Internal risk assessment tools
-- Batch scoring pipelines
-- Model APIs
+This allows the model and threshold to be reused without retraining.
 
-## Tech Stack
+The saved artifacts are then loaded by the FastAPI application during startup.
 
-### Programming
+---
+
+## FastAPI Model Serving
+
+The trained model is exposed through a REST API using FastAPI.
+
+The application loads:
+
+```text
+credit_risk_model.pkl
+best_threshold.pkl
+```
+
+at startup.
+
+The API accepts borrower information, applies the same preprocessing pipeline used during training, calculates the probability of default, and applies the saved classification threshold.
+
+### API Endpoints
+
+#### Health Check
+
+```text
+GET /
+```
+
+Example response:
+
+```json
+{
+  "message": "Credit Risk API is running"
+}
+```
+
+#### Prediction
+
+```text
+POST /predict
+```
+
+Example request:
+
+```json
+{
+  "person_age": 32,
+  "person_income": 45000,
+  "person_home_ownership": "RENT",
+  "person_emp_length": 2,
+  "loan_intent": "PERSONAL",
+  "loan_grade": "C",
+  "loan_amnt": 15000,
+  "loan_int_rate": 13.5,
+  "loan_percent_income": 0.33,
+  "cb_person_default_on_file": "Y",
+  "cb_person_cred_hist_length": 5
+}
+```
+
+The API returns:
+
+```text
+default_probability
+prediction
+risk
+```
+
+### Prediction Flow
+
+```text
+Client Request
+      |
+      v
+FastAPI
+      |
+      v
+Pydantic Validation
+      |
+      v
+Pandas DataFrame
+      |
+      v
+Saved Preprocessing Pipeline
+      |
+      v
+Calibrated XGBoost Model
+      |
+      v
+Default Probability
+      |
+      v
+Decision Threshold
+      |
+      v
+Risk Classification
+```
+
+FastAPI automatically provides Swagger documentation.
+
+Run the API locally:
+
+```bash
+uvicorn main:app --reload
+```
+
+Open:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+---
+
+## Docker
+
+The FastAPI application is containerized using Docker.
+
+Containerization packages the application and its dependencies into a consistent runtime environment.
+
+The Docker image contains:
 
 - Python
-
-### Data Manipulation
-
+- FastAPI
+- Uvicorn
 - Pandas
-- NumPy
+- Joblib
+- Scikit-learn
+- XGBoost
+- application code
+- model artifacts required for inference
+
+### Build
+
+```bash
+docker build -t credit-risk-api .
+```
+
+### Run
+
+```bash
+docker run -p 8000:8000 credit-risk-api
+```
+
+The API can then be accessed at:
+
+```text
+http://127.0.0.1:8000
+```
+
+Swagger UI:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+---
+
+## Dependency Reproducibility
+
+Model persistence requires the serving environment to remain compatible with the environment used during training.
+
+The persisted model was created with:
+
+```text
+scikit-learn==1.7.2
+```
+
+The same version is pinned in `requirements.txt`.
+
+This avoids incompatibility when loading serialized Scikit-learn objects.
+
+---
+
+## Docker Hub
+
+After validating the container locally, the Docker image is published to Docker Hub.
+
+Image:
+
+```text
+deepakkushwahaa/credit-risk-api:latest
+```
+
+Pull the image:
+
+```bash
+docker pull deepakkushwahaa/credit-risk-api:latest
+```
+
+Run it:
+
+```bash
+docker run -p 8000:8000 deepakkushwahaa/credit-risk-api:latest
+```
+
+Publishing the image to a registry allows the same application image to be reused across environments.
+
+---
+
+## Kubernetes
+
+The containerized API is deployed locally using Kubernetes through Docker Desktop.
+
+The deployment uses:
+
+```text
+deployment.yaml
+service.yaml
+```
+
+### Deployment
+
+`deployment.yaml` defines the application workload.
+
+The deployment uses:
+
+```text
+replicas: 2
+```
+
+This tells Kubernetes to maintain two running instances of the API.
+
+```text
+Kubernetes Deployment
+        |
+        +------------------+
+        |                  |
+        v                  v
+      Pod 1              Pod 2
+```
+
+Deploy:
+
+```bash
+kubectl apply -f deployment.yaml
+```
+
+Check the pods:
+
+```bash
+kubectl get pods
+```
+
+Both pods should show:
+
+```text
+READY   STATUS
+1/1     Running
+```
+
+---
+
+## Kubernetes Service
+
+Kubernetes pods can be recreated and their internal addresses can change.
+
+A Kubernetes Service provides a stable way to access the application.
+
+The service selects pods using:
+
+```text
+app: credit-risk-api
+```
+
+and forwards traffic to port:
+
+```text
+8000
+```
+
+Architecture:
+
+```text
+Client
+   |
+   v
+Kubernetes Service
+   |
+   +-------------------+
+   |                   |
+   v                   v
+Pod 1                 Pod 2
+FastAPI               FastAPI
+```
+
+Create the service:
+
+```bash
+kubectl apply -f service.yaml
+```
+
+Check it:
+
+```bash
+kubectl get service credit-risk-service
+```
+
+---
+
+## Local Kubernetes Access
+
+For local testing, the Kubernetes service can be exposed using port forwarding.
+
+```bash
+kubectl port-forward service/credit-risk-service 8000:8000
+```
+
+Open:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+If port `8000` is already occupied:
+
+```bash
+kubectl port-forward service/credit-risk-service 8001:8000
+```
+
+Then open:
+
+```text
+http://127.0.0.1:8001/docs
+```
+
+---
+
+## Deployment Architecture
+
+```text
+                   Credit Risk Dataset
+                           |
+                           v
+                Data Validation & Cleaning
+                           |
+                           v
+                     Preprocessing
+                           |
+                           v
+                    Model Training
+                           |
+                           v
+                 Hyperparameter Tuning
+                           |
+                           v
+                Probability Calibration
+                           |
+                           v
+                    SHAP Analysis
+                           |
+                           v
+                   Model Persistence
+                           |
+                           v
+                    FastAPI REST API
+                           |
+                           v
+                       Docker
+                           |
+                           v
+                     Docker Hub
+                           |
+                           v
+                Kubernetes Deployment
+                           |
+                  +--------+--------+
+                  |                 |
+                  v                 v
+                Pod 1             Pod 2
+                  |                 |
+                  +--------+--------+
+                           |
+                           v
+                  Kubernetes Service
+                           |
+                           v
+                       API Client
+```
+
+This deployment pipeline demonstrates how a machine learning model can move from experimentation in a notebook to a reusable prediction service.
+
+---
+
+## Project Structure
+
+```text
+Explainable-Credit-Risk-Assessment-with-SHAP/
+│
+├── Credit_Risk.ipynb
+├── main.py
+├── Dockerfile
+├── requirements.txt
+├── deployment.yaml
+├── service.yaml
+├── .gitignore
+└── README.md
+```
+
+### `Credit_Risk.ipynb`
+
+Contains data analysis, preprocessing, model training, validation, calibration, SHAP analysis, and model persistence.
+
+### `main.py`
+
+Contains the FastAPI application and prediction endpoint.
+
+### `Dockerfile`
+
+Defines the Docker image used to run the API.
+
+### `requirements.txt`
+
+Contains the Python dependencies required by the application.
+
+### `deployment.yaml`
+
+Defines the Kubernetes Deployment and application replicas.
+
+### `service.yaml`
+
+Defines the Kubernetes Service used to access the application pods.
+
+---
+
+## Technical Skills Demonstrated
 
 ### Machine Learning
 
-- Scikit-learn
+- Logistic Regression
 - XGBoost
+- binary classification
+- imbalanced classification
+- probability estimation
+- probability calibration
 
-### Explainability
+### Data Processing
 
-- SHAP
-
-### Data Preprocessing
-
-- Pipeline
+- Pandas
+- NumPy
+- Scikit-learn Pipeline
 - ColumnTransformer
 - SimpleImputer
 - StandardScaler
 - OneHotEncoder
 
-### Model Selection and Validation
+### Model Selection
 
-- Stratified Train-Test Split
+- stratified train-test split
 - StratifiedKFold
-- Cross-Validation
+- cross-validation
 - RandomizedSearchCV
+- hyperparameter optimization
 
-### Model Evaluation
+### Evaluation
 
-- Accuracy
-- Precision
-- Recall
-- F1 Score
+- accuracy
+- precision
+- recall
+- F1 score
 - ROC-AUC
 - Average Precision
-- Confusion Matrix
-- Precision-Recall Curve
-- Calibration Curve
+- confusion matrix
+- precision-recall analysis
+- calibration curves
 
-### Probability Estimation
+### Explainability
 
-- CalibratedClassifierCV
-- Sigmoid Calibration
+- SHAP
+- global feature importance
+- applicant-level explanations
+- waterfall plots
 
-### Visualization
+### API Development
 
-- Matplotlib
-- Seaborn
+- FastAPI
+- Pydantic
+- Uvicorn
+- REST API development
+- input validation
+- model serving
 
-### Model Persistence
+### Deployment
 
-- Joblib
+- Docker
+- Docker Hub
+- Kubernetes
+- Kubernetes Deployments
+- Kubernetes Pods
+- replicas
+- Kubernetes Services
+- port forwarding
+- dependency reproducibility
 
-## Skills Demonstrated
-
-This project demonstrates practical experience with:
-
-- End-to-end machine learning workflows
-- Credit risk modelling
-- Binary classification
-- Imbalanced classification
-- Statistical model evaluation
-- Logistic Regression
-- Gradient boosting
-- XGBoost
-- Feature preprocessing
-- Scikit-learn pipelines
-- Hyperparameter optimization
-- Stratified cross-validation
-- Probability calibration
-- Explainable machine learning
-- SHAP analysis
-- Error analysis
-- Model persistence
+---
 
 ## What I Learned
 
-This project reinforced that building a useful risk model involves more than maximizing accuracy.
-
-Three areas were particularly important.
-
 ### 1. Imbalanced Classification
 
-Default prediction requires looking beyond overall accuracy.
+Accuracy alone is not enough when the target classes are imbalanced.
 
-Precision, recall, F1 score, ROC-AUC, and Average Precision provide a more useful picture of how well the model identifies risky applicants.
+Precision, recall, F1, ROC-AUC, and Average Precision provide a more complete view of model performance.
 
 ### 2. Probability Quality
 
-A classifier can rank applicants correctly while still producing probability estimates that do not accurately represent real-world risk.
+A classifier can rank borrowers correctly while still producing probability estimates that do not accurately represent real-world risk.
 
-Probability calibration helps address this issue.
+Probability calibration helps make those estimates more meaningful.
 
 ### 3. Model Interpretability
 
-Strong predictive performance is more useful when individual predictions can also be understood.
+Strong model performance is more useful when individual predictions can also be understood.
 
-SHAP makes it possible to examine both overall feature influence and applicant-level predictions.
+SHAP makes it possible to inspect both global model behaviour and individual borrower predictions.
+
+### 4. Deployment and Reproducibility
+
+Training a model is only one part of building a complete machine learning system.
+
+The deployment process showed the importance of keeping the training and serving environments consistent.
+
+Version differences between Scikit-learn environments can cause persisted models to fail during inference.
+
+Docker provides a reproducible runtime environment, while Kubernetes provides a way to manage multiple application instances.
+
+---
 
 ## Future Improvements
 
-Possible extensions to the project include:
+Possible extensions include:
 
-- Cost-sensitive threshold selection based on lending costs
-- Additional model comparison
-- More detailed probability calibration analysis
-- Feature engineering based on financial ratios
-- Model stability analysis across borrower segments
-- Fairness and bias evaluation
-- Model monitoring for changes in data distributions
-- API development for real-time scoring
-- Interactive dashboard for applicant-level explanations
+- cost-sensitive threshold selection based on lending costs
+- further validation of the classification threshold
+- additional model comparison
+- more detailed calibration analysis
+- financial ratio feature engineering
+- borrower segment stability analysis
+- fairness and bias evaluation
+- cloud deployment
+- model monitoring
+- data drift detection
+- prediction logging
+- API monitoring
+- automated tests
+- CI/CD pipeline
+- automated Docker image builds
+- Kubernetes readiness and liveness probes
+- Kubernetes CPU and memory limits
+- interactive dashboard for applicant-level explanations
+
+---
 
 ## Conclusion
 
-This project develops an end-to-end machine learning workflow for credit risk assessment.
+This project demonstrates an end-to-end credit risk machine learning workflow.
 
-A Logistic Regression model establishes an interpretable baseline, while a tuned XGBoost model improves predictive performance to approximately **92% test accuracy and 0.81 F1 score**.
+The modelling stage covers data validation, preprocessing, class imbalance handling, Logistic Regression, XGBoost, stratified cross-validation, hyperparameter tuning, probability calibration, SHAP explainability, and error analysis.
 
-The workflow goes beyond classification by incorporating:
+The tuned XGBoost model achieved approximately **92% test accuracy, 81% precision, 81% recall, and 0.81 F1 score**, with a cross-validation ROC-AUC of approximately **0.939**.
 
-- Stratified cross-validation
-- Class imbalance handling
-- Hyperparameter optimization
-- Probability calibration
-- SHAP explainability
-- Applicant-level explanations
-- False positive and false negative analysis
+The project also goes beyond notebook-based model development.
 
-The final result is not only a model that predicts loan default risk, but a workflow designed to make those predictions more measurable, interpretable, and useful for credit risk analysis.
+The trained model is served through a FastAPI REST API, containerized with Docker, published to Docker Hub, and deployed on Kubernetes with two application replicas and a Kubernetes Service.
+
+The result is a practical example of moving a machine learning model from experimentation to a reproducible and deployable application.
+
+---
 
 ## Author
 
 **Deepak Kushwaha**  
-MSc Data Science, University of Naples Federico II  
+MSc Data Science  
+University of Naples Federico II
 
 [GitHub](https://github.com/ideepkush) | [LinkedIn](https://www.linkedin.com/in/deepak-kushwaha-75155013a/)
